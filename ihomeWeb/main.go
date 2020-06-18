@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/micro/go-log"
+	"ihome/ihomeWeb/handler"
 	"net/http"
 
 	"github.com/micro/go-web"
@@ -25,6 +26,12 @@ func main() {
 	rou := httprouter.New()
 	rou.NotFound = http.FileServer(http.Dir("html"))
 
+	// 获取地区信息
+	rou.GET("/api/v1.0/areas", handler.GetArea)
+	// 获取 session
+	rou.GET("/api/v1.0/session", handler.GetSession)
+	// 获取首页轮播图
+	rou.GET("/api/v1.0/house/index", handler.GetIndex)
 	// register html handler
 	service.Handle("/", rou)
 
