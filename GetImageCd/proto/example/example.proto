@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package go.micro.srv.GetImageCd;
+
+service Example {
+  rpc GetImageCd(Request) returns (Response) {}
+  rpc Stream(StreamingRequest) returns (stream StreamingResponse) {}
+  rpc PingPong(stream Ping) returns (stream Pong) {}
+}
+
+message Message {
+  string say = 1;
+}
+
+message Request {
+  string Uuid = 1;
+}
+
+message Response {
+  // 返回错误码
+  string ErrNO = 1;
+  // 返回信息
+  string ErrMsg = 2;
+  // 返回图片结构信息
+  bytes Pix = 3;
+  int64 Stride = 4;
+  message Point {
+    int64 X = 1;
+    int64 Y = 2;
+  }
+  Point Min = 5;
+  Point Max = 6;
+}
+
+message StreamingRequest {
+  int64 count = 1;
+}
+
+message StreamingResponse {
+  int64 count = 1;
+}
+
+message Ping {
+  int64 stroke = 1;
+}
+
+message Pong {
+  int64 stroke = 1;
+}

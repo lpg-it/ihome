@@ -3,11 +3,15 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"github.com/afocus/captcha"
 	"github.com/julienschmidt/httprouter"
 	"github.com/micro/go-grpc"
 	GETAREA "ihome/GetArea/proto/example"
+	GETIMAGECD "ihome/GetImageCd/proto/example"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
+	"image"
+	"image/png"
 	"net/http"
 )
 
@@ -75,4 +79,38 @@ func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		http.Error(w, err.Error(), 503)
 		return
 	}
+}
+
+// 获取图片验证码
+func GetImageCd(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// 获取前端发送过来的图片唯一标识码
+	uuid := ps.ByName("uuid")
+	// 创建服务
+	server := grpc.NewService()
+	// 初始化服务
+	server.Init()
+	// 连接服务
+	exampleCLient := GETIMAGECD.NewExampleService("go.micro.srv.GetImageCd", server.Client())
+	rsp, err := exampleCLient.GetImageCd(context.TODO(), &GETIMAGECD.Request{
+		Uuid: uuid,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	// 处理图片信息
+	var img image.RGBA
+	img.Pix = []uint8(rsp.Pix)
+	img.Stride = int(rsp.Stride)
+	img.Rect.Max.X = int(rsp.Max.X)
+	img.Rect.Max.Y = int(rsp.Max.Y)
+	img.Rect.Min.X = int(rsp.Min.X)
+	img.Rect.Min.Y = int(rsp.Min.Y)
+
+	var image captcha.Image
+	image.RGBA = &img
+
+	// 将图片发送给前端
+	png.Encode(w, image)
 }
