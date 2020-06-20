@@ -8,11 +8,15 @@ import (
 	"github.com/micro/go-grpc"
 	GETAREA "ihome/GetArea/proto/example"
 	GETIMAGECD "ihome/GetImageCd/proto/example"
+	getsession "ihome/GetSession/proto/getsession"
+	GETSMSCD "ihome/GetSmscd/proto/example"
+	postret "ihome/PostRet/proto/postret"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
 	"image"
 	"image/png"
 	"net/http"
+	"regexp"
 )
 
 // 获取地区信息
@@ -53,11 +57,47 @@ func GetArea(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 // 获取 session
 func GetSession(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// 创建返回的数据
-	response := map[string]interface{}{
-		"errNo": utils.RECODE_SESSIONERR,
-		"errMsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+	// 获取数据
+	// 获取 cookie
+	userLogin, err := r.Cookie("userLogin")
+	if err != nil {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
 	}
+
+	// 存在就发送数据给服务
+	// 创建服务
+	service := grpc.NewService()
+	service.Init()
+
+	getSessionClient := getsession.NewExampleService("go.micro.srv.GetSession", service.Client())
+	rsp, err := getSessionClient.GetSession(context.TODO(), &getsession.Request{
+		SessionId: userLogin.Value,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	// 将获取到的用户名给前端
+	data := make(map[string]string)
+	data["name"] = rsp.Data
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	// 将返回的数据 map 发送给前端
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -70,7 +110,7 @@ func GetSession(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// 创建返回的数据
 	response := map[string]interface{}{
-		"errNo": utils.RECODE_OK,
+		"errNo":  utils.RECODE_OK,
 		"errMsg": utils.RecodeText(utils.RECODE_OK),
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -113,4 +153,137 @@ func GetImageCd(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	// 将图片发送给前端
 	png.Encode(w, image)
+}
+
+// 获取手机短信验证码
+func GetSmscd(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// ============    获取数据    ============
+	// 获取手机号
+	mobile := ps.ByName("mobile")
+	// 获取 uuid
+	uuid := r.URL.Query()["id"][0]
+	// 获取 图片验证码
+	imageCode := r.URL.Query()["text"][0]
+
+	// ============    处理数据    ============
+	// 手机号 进行正则匹配
+	// 创建正则对象
+	regex := regexp.MustCompile(`0?(13|14|15|17|18|19)[0-9]{9}`)
+	isMobile := regex.MatchString(mobile)
+	if isMobile == false {
+		// 手机号格式错误, 返回
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_MOBILEERR,
+			"errmsg": utils.RecodeText(utils.RECODE_MOBILEERR),
+		}
+		// 设置返回数据格式
+		w.Header().Set("Content-Type", "application/json")
+		// 将错误发送给前端
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	// ============    创建服务    ============
+	server := grpc.NewService()
+	server.Init()
+
+	// 调用服务
+	exampleClient := GETSMSCD.NewExampleService("go.micro.srv.GetSmscd", server.Client())
+	rsp, err := exampleClient.GetSmscd(context.TODO(), &GETSMSCD.Request{
+		Mobile: mobile,
+		Uuid:   uuid,
+		Text:   imageCode,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	// 返回
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	// 将数据返回给前端
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), 503)
+		return
+	}
+}
+
+// 注册
+func PostRet(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// 获取数据
+	// 获取前端发送过来的 json 数据
+	var request map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	//for key, value := range request {
+	//	fmt.Println("key: ", key)
+	//	fmt.Println("value: ", value)
+	//}
+
+	// 验证数据
+	// 判断是否为空
+	if request["mobile"] == "" || request["password"] == "" || request["sms_code"] == "" {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_NODATA,
+			"errmsg": utils.RecodeText(utils.RECODE_NODATA),
+		}
+		// 如果不存在直接给前端返回
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	// 创建服务
+	service := grpc.NewService()
+	service.Init()
+
+	postRetClient := postret.NewExampleService("go.micro.srv.PostRet", service.Client())
+	rsp, err := postRetClient.PostRet(context.TODO(), &postret.Request{
+		Mobile:   request["mobile"].(string),
+		Password: request["password"].(string),
+		SmsCode:  request["sms_code"].(string),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+	}
+
+	// 读取 cookie, 如果 cookie 不存在则创建
+	cookie, err := r.Cookie("userLogin")
+	if err != nil || cookie.Value == "" {
+		// 创建 cookie
+		cookie := http.Cookie{
+			Name:   "userLogin",
+			Value:  rsp.SessionId,
+			Path:   "/",
+			MaxAge: 600,
+		}
+		http.SetCookie(w, &cookie)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), 503)
+		return
+	}
+
+	return
 }

@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"github.com/afocus/captcha"
 	"github.com/astaxie/beego/cache"
+	_ "github.com/astaxie/beego/cache/redis"
+	_ "github.com/garyburd/redigo/redis"
+	_ "github.com/gomodule/redigo/redis"
+	"github.com/micro/go-log"
 	"ihome/ihomeWeb/utils"
 	"image/color"
 	"time"
-
-	"github.com/micro/go-log"
 
 	example "ihome/GetImageCd/proto/example"
 )
@@ -17,6 +19,10 @@ import (
 type Example struct{}
 
 func (e *Example) GetImageCd(ctx context.Context, req *example.Request, rsp *example.Response) error {
+	// 成功返回
+	rsp.ErrNo = utils.RECODE_OK
+	rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
+
 	// 创建一个对象
 	cap := captcha.New()
 	if err := cap.SetFont("comic.ttf"); err != nil {
@@ -36,10 +42,6 @@ func (e *Example) GetImageCd(ctx context.Context, req *example.Request, rsp *exa
 	b := *img
 	c := *(b.RGBA)
 
-	// 成功返回
-	rsp.ErrNO = utils.RECODE_OK
-	rsp.ErrMsg = utils.RecodeText(rsp.ErrNO)
-
 	rsp.Stride = int64(c.Stride)
 	rsp.Pix = []byte(c.Pix)
 	rsp.Max = &example.Response_Point{X: int64(c.Rect.Max.X), Y: int64(c.Rect.Max.Y)}
@@ -47,20 +49,21 @@ func (e *Example) GetImageCd(ctx context.Context, req *example.Request, rsp *exa
 
 	// 存储到缓存中： 将 uuid 与 验证码的文本形式 存储在 redis 中
 	// 初始化缓存全局变量的对象
-	redisConf := map[string]interface{}{
-		"key":   "ihome",
+	redisConf := map[string]string{
+		"key":   utils.G_server_name,
 		"conn":  utils.G_redis_addr + ":" + utils.G_redis_port,
-		"dbNUm": utils.G_redis_dbnum,
+		"dbNum": utils.G_redis_dbnum,
 	}
 	redisConfJson, _ := json.Marshal(redisConf)
 
-	// 连接 redis 创建对象
+	// 连接 redis
 	bm, err := cache.NewCache("redis", string(redisConfJson))
 	if err != nil {
-		rsp.ErrNO = utils.RECODE_DBERR
-		rsp.ErrMsg = utils.RecodeText(rsp.ErrNO)
+		rsp.ErrNo = utils.RECODE_DBERR
+		rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
 		return nil
 	}
+
 	// 验证码进行 10 分钟的缓存
 	bm.Put(req.Uuid, str, 600*time.Second)
 

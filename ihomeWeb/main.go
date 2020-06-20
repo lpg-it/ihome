@@ -30,12 +30,16 @@ func main() {
 	service.Handle("/", rou)
 	// 获取地区信息
 	rou.GET("/api/v1.0/areas", handler.GetArea)
-	// 获取 session
-	rou.GET("/api/v1.0/session", handler.GetSession)
 	// 获取首页轮播图
 	rou.GET("/api/v1.0/house/index", handler.GetIndex)
 	// 获取图片验证码
 	rou.GET("/api/v1.0/imagecode/:uuid", handler.GetImageCd)
+	// 获取短信验证码
+	rou.GET("/api/v1.0/smscode/:mobile", handler.GetSmscd)
+	// 注册
+	rou.POST("/api/v1.0/users", handler.PostRet)
+	// 获取 session
+	rou.GET("/api/v1.0/session", handler.GetSession)
 
 	// run service
 	if err := service.Run(); err != nil {

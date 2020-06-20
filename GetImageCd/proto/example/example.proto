@@ -18,7 +18,7 @@ message Request {
 
 message Response {
   // 返回错误码
-  string ErrNO = 1;
+  string ErrNo = 1;
   // 返回信息
   string ErrMsg = 2;
   // 返回图片结构信息

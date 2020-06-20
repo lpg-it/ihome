@@ -3,7 +3,7 @@ syntax = "proto3";
 package go.micro.srv.GetSmscd;
 
 service Example {
-	rpc Call(Request) returns (Response) {}
+	rpc GetSmscd(Request) returns (Response) {}
 	rpc Stream(StreamingRequest) returns (stream StreamingResponse) {}
 	rpc PingPong(stream Ping) returns (stream Pong) {}
 }
@@ -13,11 +13,17 @@ message Message {
 }
 
 message Request {
-	string name = 1;
+	// 手机号
+	string Mobile = 1;
+	// 验证码
+	string Text = 2;
+	// uuid
+	string Uuid = 3;
 }
 
 message Response {
-	string msg = 1;
+	string ErrNo = 1;
+	string ErrMsg = 2;
 }
 
 message StreamingRequest {
