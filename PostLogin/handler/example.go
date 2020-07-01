@@ -37,7 +37,8 @@ func (e *Example) PostLogin(ctx context.Context, req *postlogin.Request, rsp *po
 
 	/* 处理数据 */
 	// 存在该用户，判断密码是否正确
-	if user.PasswordHash != req.Password {
+
+	if user.PasswordHash != handler.GetMd5String(req.Password) {
 		// 密码不正确
 		rsp.ErrNo = utils.RECODE_PWDERR
 		rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)

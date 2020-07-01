@@ -48,7 +48,7 @@ func (e *Example) GetArea(ctx context.Context, req *getarea.Request, rsp *getare
 		json.Unmarshal(areaInfo.([]byte), &areas)
 
 		for _, value := range areas {
-			rsp.Data = append(rsp.Data, &getarea.Response_Area{Aid: int32(value["Aid"].(float64)), Aname: value["Aname"].(string)})
+			rsp.Data = append(rsp.Data, &getarea.Response_Area{Aid: int32(value["aid"].(float64)), Aname: value["aname"].(string)})
 		}
 		return nil
 	}

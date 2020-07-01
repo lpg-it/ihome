@@ -41,7 +41,7 @@ func main() {
 	// 获取 session
 	rou.GET("/api/v1.0/session", handler.GetSession)
 	// 登录
-	rou.GET("/api/v1.0/sessions", handler.PostLogin)
+	rou.POST("/api/v1.0/sessions", handler.PostLogin)
 
 	// run service
 	if err := service.Run(); err != nil {
