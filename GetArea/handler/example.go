@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/astaxie/beego/cache"
 	"github.com/astaxie/beego/orm"
-	"github.com/micro/go-log"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
 	"time"
@@ -13,12 +12,12 @@ import (
 	_ "github.com/astaxie/beego/cache/redis"
 	_ "github.com/garyburd/redigo/redis"
 	_ "github.com/gomodule/redigo/redis"
-	example "ihome/GetArea/proto/example"
+	getarea "ihome/GetArea/proto/getarea"
 )
 
 type Example struct{}
 
-func (e *Example) GetArea(ctx context.Context, req *example.Request, rsp *example.Response) error {
+func (e *Example) GetArea(ctx context.Context, req *getarea.Request, rsp *getarea.Response) error {
 	// 初始化 错误码
 	rsp.ErrNo = utils.RECODE_OK
 	rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
@@ -49,7 +48,7 @@ func (e *Example) GetArea(ctx context.Context, req *example.Request, rsp *exampl
 		json.Unmarshal(areaInfo.([]byte), &areas)
 
 		for _, value := range areas {
-			rsp.Data = append(rsp.Data, &example.Response_Area{Aid: int32(value["Aid"].(float64)), Aname: value["Aname"].(string)})
+			rsp.Data = append(rsp.Data, &getarea.Response_Area{Aid: int32(value["Aid"].(float64)), Aname: value["Aname"].(string)})
 		}
 		return nil
 	}
@@ -81,37 +80,7 @@ func (e *Example) GetArea(ctx context.Context, req *example.Request, rsp *exampl
 
 	// 4. 将查找到的数据 按照 proto 的格式 发送给前端
 	for _, value := range areas {
-		rsp.Data = append(rsp.Data, &example.Response_Area{Aid: int32(value.Id), Aname: value.Name})
+		rsp.Data = append(rsp.Data, &getarea.Response_Area{Aid: int32(value.Id), Aname: value.Name})
 	}
 	return nil
-}
-
-// Stream is a server side stream handler called via client.Stream or the generated client code
-func (e *Example) Stream(ctx context.Context, req *example.StreamingRequest, stream example.Example_StreamStream) error {
-	log.Logf("Received Example.Stream request with count: %d", req.Count)
-
-	for i := 0; i < int(req.Count); i++ {
-		log.Logf("Responding: %d", i)
-		if err := stream.Send(&example.StreamingResponse{
-			Count: int64(i),
-		}); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// PingPong is a bidirectional stream handler called via client.Stream or the generated client code
-func (e *Example) PingPong(ctx context.Context, stream example.Example_PingPongStream) error {
-	for {
-		req, err := stream.Recv()
-		if err != nil {
-			return err
-		}
-		log.Logf("Got ping %v", req.Stroke)
-		if err := stream.Send(&example.Pong{Stroke: req.Stroke}); err != nil {
-			return err
-		}
-	}
 }

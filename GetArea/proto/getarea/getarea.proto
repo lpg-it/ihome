@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package go.micro.srv.GetArea;
+
+service Example {
+  rpc GetArea(Request) returns (Response) {}
+}
+
+message Request {
+
+}
+
+message Response {
+  // 返回错误码
+  string ErrNo = 1;
+  // 返回错误信息
+  string ErrMsg = 2;
+  // 返回数据类型
+  message Area {
+    int32 Aid = 1;
+    string Aname = 2;
+  }
+  // 用自定义类型返回的数组
+  repeated Area Data = 3;
+}

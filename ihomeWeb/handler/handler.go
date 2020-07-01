@@ -2,14 +2,17 @@ package handler
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"github.com/afocus/captcha"
 	"github.com/julienschmidt/httprouter"
 	"github.com/micro/go-grpc"
-	GETAREA "ihome/GetArea/proto/example"
+	getarea "ihome/GetArea/proto/getarea"
 	GETIMAGECD "ihome/GetImageCd/proto/example"
 	getsession "ihome/GetSession/proto/getsession"
 	GETSMSCD "ihome/GetSmscd/proto/example"
+	postlogin "ihome/PostLogin/proto/postlogin"
 	postret "ihome/PostRet/proto/postret"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
@@ -19,6 +22,13 @@ import (
 	"regexp"
 )
 
+// md5 加密
+func GetMd5String(s string) string {
+	h := md5.New()
+	h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
 // 获取地区信息
 func GetArea(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// 创建新的 gRPC 返回句柄
@@ -27,9 +37,9 @@ func GetArea(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	server.Init()
 
 	// 创建获取地区的服务并且返回句柄
-	exampleClient := GETAREA.NewExampleService("go.micro.srv.GetArea", server.Client())
+	exampleClient := getarea.NewExampleService("go.micro.srv.GetArea", server.Client())
 	// 调用函数并且返回数据
-	rsp, err := exampleClient.GetArea(context.TODO(), &GETAREA.Request{})
+	rsp, err := exampleClient.GetArea(context.TODO(), &getarea.Request{})
 	if err != nil {
 		return
 	}
@@ -285,5 +295,71 @@ func PostRet(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
+	return
+}
+
+// 登录
+func PostLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	/* 获取前端发送的数据 */
+	var request map[string]interface{}
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	/* 处理数据 */
+	// 判断账号密码是否为空
+	if request["mobile"] == "" || request["password"] == "" {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_NODATA,
+			"errmsg": utils.RecodeText(utils.RECODE_NODATA),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+	/* 连接服务 */
+	service := grpc.NewService()
+	service.Init()
+
+	postLoginClient := postlogin.NewPostLoginService("go.micro.srv.PostLogin", service.Client())
+	rsp, err := postLoginClient.PostLogin(context.TODO(), &postlogin.Request{
+		Mobile:   request["mobile"].(string),
+		Password: request["password"].(string),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	// 获取cookie
+	userLoginCookie, err := r.Cookie("userLogin")
+	if err != nil || userLoginCookie.Value == "" {
+		// 没有cookie，设置cookie
+		userLoginCookie := http.Cookie{
+			Name:   "userLogin",
+			Value:  rsp.SessionId,
+			Path:   "/",
+			MaxAge: 600,
+		}
+		http.SetCookie(w, &userLoginCookie)
+	}
+
+	/* 返回数据 */
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 503)
+		return
+	}
 	return
 }

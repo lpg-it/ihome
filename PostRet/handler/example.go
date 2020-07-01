@@ -2,8 +2,6 @@ package handler
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"github.com/astaxie/beego/cache"
 	_ "github.com/astaxie/beego/cache/redis"
@@ -11,6 +9,7 @@ import (
 	_ "github.com/garyburd/redigo/redis"
 	_ "github.com/gomodule/redigo/redis"
 	postret "ihome/PostRet/proto/postret"
+	"ihome/ihomeWeb/handler"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
 	"strconv"
@@ -18,13 +17,6 @@ import (
 )
 
 type Example struct{}
-
-// md5 加密
-func getMd5String(s string) string {
-	h := md5.New()
-	h.Write([]byte(s))
-	return hex.EncodeToString(h.Sum(nil))
-}
 
 func (e *Example) PostRet(ctx context.Context, req *postret.Request, rsp *postret.Response) error {
 	// 初始化错误码
@@ -76,7 +68,7 @@ func (e *Example) PostRet(ctx context.Context, req *postret.Request, rsp *postre
 	var user models.User
 	user.Name = req.Mobile
 	user.Mobile = req.Mobile
-	user.PasswordHash = getMd5String(req.Password)
+	user.PasswordHash = handler.GetMd5String(req.Password)
 	// 向数据库中插入数据
 	_, err = o.Insert(&user)
 	if err != nil {
@@ -86,7 +78,7 @@ func (e *Example) PostRet(ctx context.Context, req *postret.Request, rsp *postre
 	}
 
 	// 生成 sessionId 保证唯一性, 存入缓存中
-	h := getMd5String(req.Mobile + req.Password)
+	h := handler.GetMd5String(req.Mobile + req.Password)
 	// 返回给客户端 session
 	rsp.SessionId = h
 
