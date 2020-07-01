@@ -8,6 +8,7 @@ import (
 	"github.com/afocus/captcha"
 	"github.com/julienschmidt/httprouter"
 	"github.com/micro/go-grpc"
+	deletesession "ihome/DeleteSession/proto/deletesession"
 	getarea "ihome/GetArea/proto/getarea"
 	GETIMAGECD "ihome/GetImageCd/proto/example"
 	getsession "ihome/GetSession/proto/getsession"
@@ -355,6 +356,57 @@ func PostLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		"errmsg": rsp.ErrMsg,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 503)
+		return
+	}
+	return
+}
+
+// 退出登录
+func DeleteSession(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	/* 获取数据 */
+	// 获取 sessionId
+	userLoginSession, err := r.Cookie("userLogin")
+	if err != nil {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+	}
+
+	// 连接 退出登录 服务
+	service := grpc.NewService()
+	service.Init()
+	deleteSessionClient := deletesession.NewDeleteSessionService("go.micro.srv.DeleteSession", service.Client())
+	rsp, err := deleteSessionClient.DeleteSession(context.TODO(), &deletesession.Request{
+		SessionId: userLoginSession.Value,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	/* 处理数据 */
+
+	http.SetCookie(w, &http.Cookie{
+		Name:   "userLogin",
+		Path:   "/",
+		MaxAge: -1,
+	})
+
+	/* 返回数据 */
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+	}
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(&response); err != nil {
