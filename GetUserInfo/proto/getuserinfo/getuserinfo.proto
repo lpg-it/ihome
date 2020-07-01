@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package go.micro.srv.GetUserInfo;
+
+service GetUserInfo {
+	rpc GetUserInfo(Request) returns (Response) {}
+}
+
+message Request {
+	string SessionId = 1;
+}
+
+message Response {
+	// 错误码
+	string ErrNo = 1;
+	// 错误信息
+	string ErrMsg = 2;
+	// 用户 id
+	int64 UserId = 3;
+	// 用户名
+	string UserName = 4;
+	// 手机号
+	string Mobile = 5;
+	// 真实姓名
+	string RealName = 6;
+	// 身份证号
+	string IdCard = 7;
+	// 头像地址
+	string AvatarUrl = 8;
+}

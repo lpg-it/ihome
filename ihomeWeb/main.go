@@ -44,6 +44,11 @@ func main() {
 	rou.POST("/api/v1.0/sessions", handler.PostLogin)
 	// 退出登录
 	rou.DELETE("/api/v1.0/session", handler.DeleteSession)
+	// 获取用户信息
+	rou.GET("/api/v1.0/user", handler.GetUserInfo)
+
+
+
 	// run service
 	if err := service.Run(); err != nil {
 		log.Fatal(err)
