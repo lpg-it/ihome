@@ -4,3 +4,5 @@ redis-server ./conf/redis.conf
 fdfs_trackerd /home/lpgit/go/src/ihome/ihomeWeb/conf/tracker.conf restart
 # 启动 storaged
 fdfs_storaged /home/lpgit/go/src/ihome/ihomeWeb/conf/storage.conf restart
+# 启动 nginx
+sudo  /usr/local/nginx/sbin/nginx

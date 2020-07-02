@@ -2,6 +2,9 @@ package models
 
 import (
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
+	"github.com/weilaihui/fdfs_client"
+
 	// 使用了beego的orm模块
 	"github.com/astaxie/beego/orm"
 	// go语言的sql的驱动
@@ -200,6 +203,45 @@ func (this *OrderHouse) ToOrderInfo() interface{} {
 	}
 
 	return orderInfo
+}
+
+// 通过文件名的方式进行上传
+func UploadByFilename(filename string) (GroupName, RemoteFileId string, err error) {
+	GroupName = ""
+	RemoteFileId = ""
+	// 通过配置文件创建 fdfs 对象
+	fdfsClient, err := fdfs_client.NewFdfsClient("/home/lpgit/go/src/ihome/ihomeWeb/conf/client.conf")
+	if err != nil {
+		logs.Info(err.Error())
+		return
+	}
+	uploadFileResponse, err := fdfsClient.UploadByFilename(filename)
+	if err != nil {
+		logs.Info(err.Error())
+		return
+	}
+
+	return uploadFileResponse.GroupName, uploadFileResponse.RemoteFileId, nil
+}
+
+// 操作 fdfs 上传二进制文件
+func UploadByBuffer(fileBuffer []byte, fileExtName string) (GroupName, RemoteFileId string, err error) {
+	GroupName = ""
+	RemoteFileId = ""
+
+	// 通过配置文件创建 fdfs 对象
+	fdfsClient, err := fdfs_client.NewFdfsClient("/home/lpgit/go/src/ihome/ihomeWeb/conf/client.conf")
+	if err != nil {
+		logs.Info(err.Error())
+		return
+	}
+	uploadFileResponse, err := fdfsClient.UploadByBuffer(fileBuffer, fileExtName)
+	if err != nil {
+		logs.Info(err.Error())
+		return
+	}
+
+	return uploadFileResponse.GroupName, uploadFileResponse.RemoteFileId, nil
 }
 
 // 数据库的初始化

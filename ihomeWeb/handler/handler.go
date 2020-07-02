@@ -14,9 +14,9 @@ import (
 	getsession "ihome/GetSession/proto/getsession"
 	GETSMSCD "ihome/GetSmscd/proto/example"
 	getuserinfo "ihome/GetUserInfo/proto/getuserinfo"
+	postavatar "ihome/PostAvatar/proto/postavatar"
 	postlogin "ihome/PostLogin/proto/postlogin"
 	postret "ihome/PostRet/proto/postret"
-
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
 	"image"
@@ -461,6 +461,92 @@ func GetUserInfo(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	data["avatar_url"] = utils.AddDomain2Url(rsp.AvatarUrl)
 
 	/* 返回数据 */
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 503)
+		return
+	}
+	return
+}
+
+// 上传用户头像
+func PostAvatar(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	/* 获取数据 */
+	// 获取用户 sessionId, 查看登录信息
+	userLoginSession, err := r.Cookie("userLogin")
+	if err != nil {
+		// 获取 session 失败, 返回前端数据
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	// 获取二进制图片，名字，大小
+	avatarFile, avatarHeader, err := r.FormFile("avatar")
+	if err != nil {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_IOERR,
+			"errmsg": utils.RecodeText(utils.RECODE_IOERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	/* 处理数据 */
+	// 存储文件（二进制）
+	fileBuffer := make([]byte, avatarHeader.Size)
+	// 将文件读到 fileBuffer 里
+	_, err = avatarFile.Read(fileBuffer)
+	if err != nil {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_IOERR,
+			"errmsg": utils.RecodeText(utils.RECODE_IOERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	// 连接 上传头像 服务， 传入数据
+	service := grpc.NewService()
+	service.Init()
+
+	postAvatarClient := postavatar.NewPostAvatarService("go.micro.srv.PostAvatar", service.Client())
+	rsp, err := postAvatarClient.PostAvatar(context.TODO(), &postavatar.Request{
+		SessionId: userLoginSession.Value,
+		Avatar:    fileBuffer,
+		FileName:  avatarHeader.Filename,
+		FileSize:  avatarHeader.Size,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	/* 返回数据 */
+	// 给前端传输数据
+	data := make(map[string]interface{})
+	// url 拼接图片地址
+	data["avatar_url"] = utils.AddDomain2Url(rsp.AvatarUrl)
 	response := map[string]interface{}{
 		"errno":  rsp.ErrNo,
 		"errmsg": rsp.ErrMsg,
