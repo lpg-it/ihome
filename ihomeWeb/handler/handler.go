@@ -17,6 +17,7 @@ import (
 	postavatar "ihome/PostAvatar/proto/postavatar"
 	postlogin "ihome/PostLogin/proto/postlogin"
 	postret "ihome/PostRet/proto/postret"
+	putuserinfo "ihome/PutUserInfo/proto/putuserinfo"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
 	"image"
@@ -555,6 +556,64 @@ func PostAvatar(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(&response); err != nil {
 		http.Error(w, err.Error(), 503)
+		return
+	}
+	return
+}
+
+// 更新用户名
+func PutUserInfo(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	/* 获取数据 */
+	// 获取前端提交的数据
+	var request map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	// 获取 sessionId
+	userLoginSession, err := r.Cookie("userLogin")
+	if err != nil {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	/* 处理数据 */
+	// 连接 更新用户名 服务
+	service := grpc.NewService()
+	service.Init()
+
+	putUserInfoClient := putuserinfo.NewPutUserInfoService("go.micro.srv.PutUserInfo", service.Client())
+	rsp, err := putUserInfoClient.PutUserInfo(context.TODO(), &putuserinfo.Request{
+		SessionId: userLoginSession.Value,
+		UserName:  request["name"].(string),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	/* 返回数据 */
+	// 接收回发的数据
+	data := map[string]interface{}{
+		"name": rsp.UserName,
+	}
+
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 501)
 		return
 	}
 	return

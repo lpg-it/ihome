@@ -83,7 +83,7 @@ func (e *Example) PostRet(ctx context.Context, req *postret.Request, rsp *postre
 	rsp.SessionId = h
 
 	bm.Put(h+"name", string(user.Name), 3600*time.Second)
-	bm.Put(h+"user_id", string(user.Id), 3600*time.Second)
+	bm.Put(h+"userId", string(user.Id), 3600*time.Second)
 	bm.Put(h+"mobile", string(user.Mobile), 3600*time.Second)
 
 	return nil
