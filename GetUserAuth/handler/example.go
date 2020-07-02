@@ -10,22 +10,20 @@ import (
 	_ "github.com/gomodule/redigo/redis"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
-	"time"
 
-	putuserinfo "ihome/PutUserInfo/proto/putuserinfo"
+	getuserauth "ihome/GetUserAuth/proto/getuserauth"
 )
 
 type Server struct{}
 
-func (e *Server) PutUserInfo(ctx context.Context, req *putuserinfo.Request, rsp *putuserinfo.Response) error {
-	/* 初始化返回数据 */
+func (e *Server) GetUserAuth(ctx context.Context, req *getuserauth.Request, rsp *getuserauth.Response) error {
+	/* 初始化返回值 */
 	rsp.ErrNo = utils.RECODE_OK
 	rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
 
 	/* 获取数据 */
-	// 获取 sessionId, 从 redis 中获取对应用户id， 在 mysql 中更新信息
-	//sessionId := req.SessionId
-	// 连接 redis
+	// 获取 sessionId + "userId"，可得到 userId
+	// 连接 redis 数据库
 	redisConfig, _ := json.Marshal(map[string]string{
 		"key":   utils.G_server_name,
 		"conn":  utils.G_redis_addr + ":" + utils.G_redis_port,
@@ -37,32 +35,27 @@ func (e *Server) PutUserInfo(ctx context.Context, req *putuserinfo.Request, rsp 
 		rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
 		return nil
 	}
-
 	userIdTemp := bm.Get(req.SessionId + "userId")
 	userId := int(userIdTemp.([]uint8)[0])
 
-	// 获取用户名
-	//userName := req.UserName
-
 	/* 处理数据 */
-	// 去数据库更新用户名
-	var user models.User
+	// 从数据库中查询该用户
 	o := orm.NewOrm()
+	var user models.User
 	user.Id = userId
-	user.Name = req.UserName
-	_, err = o.Update(&user, "Name")
+	err = o.Read(&user)
 	if err != nil {
 		rsp.ErrNo = utils.RECODE_DBERR
 		rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
 		return nil
 	}
 
-	// 更新 session
-	bm.Put(req.SessionId+"userId", user.Id, time.Second*3600)
-	bm.Put(req.SessionId+"name", user.Name, time.Second*3600)
-	bm.Put(req.SessionId+"mobile", user.Mobile, time.Second*3600)
-
 	/* 返回数据 */
+	rsp.UserId = int64(user.Id)
 	rsp.UserName = user.Name
+	rsp.Mobile = user.Mobile
+	rsp.RealName = user.RealName
+	rsp.IdCard = user.IdCard
+	rsp.AvatarUrl = user.AvatarUrl
 	return nil
 }

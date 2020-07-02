@@ -14,7 +14,7 @@ function logout() {
         dataType: "json",
         success: function (resp) {
             if ("0" == resp.errno) {
-                location.href = "/index.html";
+                location.href = "/";
             }
         }
     });

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package go.micro.srv.PostUserAuth;
+
+service PostUserAuth {
+	rpc PostUserAuth(Request) returns (Response) {}
+}
+
+message Request {
+	string SessionId = 1;
+	string RealName = 2;
+	string IdCard = 3;
+}
+
+message Response {
+	string ErrNo = 1;
+	string ErrMsg = 2;
+
+}

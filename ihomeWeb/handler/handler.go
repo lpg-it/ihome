@@ -13,10 +13,12 @@ import (
 	GETIMAGECD "ihome/GetImageCd/proto/example"
 	getsession "ihome/GetSession/proto/getsession"
 	GETSMSCD "ihome/GetSmscd/proto/example"
+	getuserauth "ihome/GetUserAuth/proto/getuserauth"
 	getuserinfo "ihome/GetUserInfo/proto/getuserinfo"
 	postavatar "ihome/PostAvatar/proto/postavatar"
 	postlogin "ihome/PostLogin/proto/postlogin"
 	postret "ihome/PostRet/proto/postret"
+	postuserauth "ihome/PostUserAuth/proto/postuserauth"
 	putuserinfo "ihome/PutUserInfo/proto/putuserinfo"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
@@ -610,6 +612,116 @@ func PutUserInfo(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		"errno":  rsp.ErrNo,
 		"errmsg": rsp.ErrMsg,
 		"data":   data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 501)
+		return
+	}
+	return
+}
+
+// 获取用户实名认证
+func GetUserAuth(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	/* 获取数据 */
+	// 获取 sessionId
+	userLoginSession, err := r.Cookie("userLogin")
+	if err != nil {
+		// 获取 session 失败，直接返回
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	/* 处理数据 */
+	// 连接 服务
+	service := grpc.NewService()
+	service.Init()
+
+	getUserAuthClient := getuserauth.NewGetUserAuthService("go.micro.srv.GetUserAuth", service.Client())
+	rsp, err := getUserAuthClient.GetUserAuth(context.TODO(), &getuserauth.Request{
+		SessionId: userLoginSession.Value,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	data := make(map[string]interface{})
+	// 将从服务端得到的数据发送给前端
+	data["user_id"] = rsp.UserId
+	data["name"] = rsp.UserName
+	data["mobile"] = rsp.Mobile
+	data["real_name"] = rsp.RealName
+	data["id_card"] = rsp.IdCard
+	data["avatar_url"] = utils.AddDomain2Url(rsp.AvatarUrl)
+
+	/* 返回数据 */
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 503)
+		return
+	}
+	return
+}
+
+// 更新实名认证
+func PostUserAuth(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	/* 获取数据 */
+	// 获取前端提交的数据
+	var request map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	// 获取 session
+	userLoginSession, err := r.Cookie("userLogin")
+	if err != nil {
+		// 用户未登录
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+	}
+
+	/* 处理数据 */
+	// 连接 更新用户实名认证 服务
+	service := grpc.NewService()
+	service.Init()
+
+	postUserAuthClient := postuserauth.NewPostUserAuthService("go.micro.srv.PostUserAuth", service.Client())
+	rsp, err := postUserAuthClient.PostUserAuth(context.TODO(), &postuserauth.Request{
+		SessionId: userLoginSession.Value,
+		RealName:  request["real_name"].(string),
+		IdCard:    request["id_card"].(string),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	/* 返回数据 */
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(&response); err != nil {
