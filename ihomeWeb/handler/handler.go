@@ -14,8 +14,11 @@ import (
 	getsession "ihome/GetSession/proto/getsession"
 	GETSMSCD "ihome/GetSmscd/proto/example"
 	getuserauth "ihome/GetUserAuth/proto/getuserauth"
+	getuserhouses "ihome/GetUserHouses/proto/getuserhouses"
 	getuserinfo "ihome/GetUserInfo/proto/getuserinfo"
 	postavatar "ihome/PostAvatar/proto/postavatar"
+	posthouses "ihome/PostHouses/proto/posthouses"
+	posthousesimage "ihome/PostHousesImage/proto/posthousesimage"
 	postlogin "ihome/PostLogin/proto/postlogin"
 	postret "ihome/PostRet/proto/postret"
 	postuserauth "ihome/PostUserAuth/proto/postuserauth"
@@ -24,6 +27,7 @@ import (
 	"ihome/ihomeWeb/utils"
 	"image"
 	"image/png"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 )
@@ -728,5 +732,184 @@ func PostUserAuth(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		http.Error(w, err.Error(), 501)
 		return
 	}
+	return
+}
+
+// 获取当前用户已发布房源信息
+func GetUserHouses(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	/* 获取数据 */
+	// 获取 sessionId 传给服务端
+	userLoginSession, err := r.Cookie("userLogin")
+	if err != nil {
+		// 用户未登录
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	/* 处理数据 */
+	// 连接服务
+	service := grpc.NewService()
+	service.Init()
+
+	getUserHousesClient := getuserhouses.NewGetUserHousesService("go.micro.srv.GetUserHouses", service.Client())
+	rsp, err := getUserHousesClient.GetUserHouses(context.TODO(), &getuserhouses.Request{
+		SessionId: userLoginSession.Value,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	var houses []models.House
+	data := make(map[string]interface{})
+
+	_ = json.Unmarshal(rsp.Data, &houses)
+	data["houses"] = houses
+
+	/* 返回数据 */
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 501)
+		return
+	}
+
+	return
+}
+
+// 发布房源信息
+func PostHouses(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	/* 获取数据 */
+	// 获取前端 post 请求发送的内容
+	houseInfo, _ := ioutil.ReadAll(r.Body)
+
+	// 获取 cookie
+	userLoginSession, err := r.Cookie("userLogin")
+	if err != nil {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		//设置回传格式
+		w.Header().Set("Content-Type", "application/json")
+		// encode and write the response as json
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	/* 处理数据 */
+	// 连接服务
+	service := grpc.NewService()
+	service.Init()
+
+	postHousesClient := posthouses.NewPostHousesService("go.micro.srv.PostHouses", service.Client())
+	rsp, err := postHousesClient.PostHouses(context.TODO(), &posthouses.Request{
+		SessionId: userLoginSession.Value,
+		Data:      houseInfo,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	/* 返回数据 */
+	data := make(map[string]interface{})
+	data["house_id"] = rsp.HouseId
+
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 501)
+		return
+	}
+	return
+}
+
+// 上传房屋图片
+func PostHousesImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	/* 获取数据 */
+	// 获取房屋 id
+	houseId := ps.ByName("id")
+
+	// 获取前端上传的图片
+	file, fileHeader, err := r.FormFile("house_image")
+	if err != nil {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_IOERR,
+			"errmsg": utils.RecodeText(utils.RECODE_IOERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	/* 处理数据 */
+	fileBuffer := make([]byte, fileHeader.Size)
+	_, err = file.Read(fileBuffer)
+	if err != nil {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_IOERR,
+			"errmsg": utils.RecodeText(utils.RECODE_IOERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	// 连接服务
+	service := grpc.NewService()
+	service.Init()
+
+	postHousesImageClient := posthousesimage.NewPostHousesImageService("go.micro.srv.PostHousesImage", service.Client())
+	rsp, err := postHousesImageClient.PostHousesImage(context.TODO(), &posthousesimage.Request{
+		Image:    fileBuffer,
+		HouseId:  houseId,
+		FileName: fileHeader.Filename,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	/* 返回数据 */
+	data := make(map[string]interface{})
+	data["url"] = utils.AddDomain2Url(rsp.Url)
+
+	response := map[string]interface{}{
+		":errno": rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 501)
+		return
+	}
+
 	return
 }

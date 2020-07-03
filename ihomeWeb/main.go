@@ -51,9 +51,15 @@ func main() {
 	// 更新用户名
 	rou.PUT("/api/v1.0/user/name", handler.PutUserInfo)
 	// 实名认证检查
-	rou.GET("/api/v1.0/user/auth",handler.GetUserAuth)
+	rou.GET("/api/v1.0/user/auth", handler.GetUserAuth)
 	// 更新实名认证信息
 	rou.POST("/api/v1.0/user/auth", handler.PostUserAuth)
+	// 获取当前用户已发布房源信息
+	rou.GET("/api/v1.0/user/houses", handler.GetUserHouses)
+	// 发布房源信息
+	rou.POST("/api/v1.0/houses", handler.PostHouses)
+	// 上传房屋图片
+	rou.POST("/api/v1.0/houses/:id/images", handler.PostHousesImage)
 
 	// run service
 	if err := service.Run(); err != nil {
