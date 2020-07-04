@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package go.micro.srv.GetHouses;
+
+service GetHouses {
+  rpc GetHouses(Request) returns (Response) {}
+}
+
+message Request {
+  // 地区编号
+  string AreaId = 1;
+  // 起始日期
+  string StartDate = 2;
+  // 结束日期
+  string EndDate = 3;
+  // 查询方式
+  string SelectKey = 4;
+  // 页码
+  string PageNumber = 5;
+}
+
+message Response {
+  string ErrNo = 1;
+  string ErrMsg = 2;
+  // 房屋信息
+  bytes Houses = 3;
+  // 当前页码
+  int64 CurrentPage = 4;
+  // 总页数
+  int64 TotalPage = 5;
+}

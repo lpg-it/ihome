@@ -30,8 +30,6 @@ func main() {
 	service.Handle("/", rou)
 	// 获取地区信息
 	rou.GET("/api/v1.0/areas", handler.GetArea)
-	// 获取首页轮播图
-	rou.GET("/api/v1.0/house/index", handler.GetIndex)
 	// 获取图片验证码
 	rou.GET("/api/v1.0/imagecode/:uuid", handler.GetImageCd)
 	// 获取短信验证码
@@ -60,7 +58,14 @@ func main() {
 	rou.POST("/api/v1.0/houses", handler.PostHouses)
 	// 上传房屋图片
 	rou.POST("/api/v1.0/houses/:id/images", handler.PostHousesImage)
-
+	// 获取房源详细信息
+	rou.GET("/api/v1.0/houses/:id", handler.GetHouseInfo)
+	// 获取首页轮播图
+	rou.GET("/api/v1.0/house/index", handler.GetIndex)
+	// 搜索房源
+	rou.GET("/api/v1.0/houses", handler.GetHouses)
+	// 发布订单
+	rou.POST("/api/v1.0/orders", handler.PostOrders)
 	// run service
 	if err := service.Run(); err != nil {
 		log.Fatal(err)

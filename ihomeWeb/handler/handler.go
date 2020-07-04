@@ -10,7 +10,10 @@ import (
 	"github.com/micro/go-grpc"
 	deletesession "ihome/DeleteSession/proto/deletesession"
 	getarea "ihome/GetArea/proto/getarea"
+	gethouseinfo "ihome/GetHouseInfo/proto/gethouseinfo"
+	gethouses "ihome/GetHouses/proto/gethouses"
 	GETIMAGECD "ihome/GetImageCd/proto/example"
+	getindex "ihome/GetIndex/proto/getindex"
 	getsession "ihome/GetSession/proto/getsession"
 	GETSMSCD "ihome/GetSmscd/proto/example"
 	getuserauth "ihome/GetUserAuth/proto/getuserauth"
@@ -20,6 +23,7 @@ import (
 	posthouses "ihome/PostHouses/proto/posthouses"
 	posthousesimage "ihome/PostHousesImage/proto/posthousesimage"
 	postlogin "ihome/PostLogin/proto/postlogin"
+	postorders "ihome/PostOrders/proto/postorders"
 	postret "ihome/PostRet/proto/postret"
 	postuserauth "ihome/PostUserAuth/proto/postuserauth"
 	putuserinfo "ihome/PutUserInfo/proto/putuserinfo"
@@ -120,21 +124,6 @@ func GetSession(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	w.Header().Set("Content-Type", "application/json")
 	// 将返回的数据 map 发送给前端
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), 503)
-		return
-	}
-}
-
-// 获取首页轮播图
-func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// 创建返回的数据
-	response := map[string]interface{}{
-		"errNo":  utils.RECODE_OK,
-		"errMsg": utils.RecodeText(utils.RECODE_OK),
-	}
-	w.Header().Set("Content-Type", "application/json")
-
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), 503)
 		return
@@ -902,6 +891,196 @@ func PostHousesImage(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 
 	response := map[string]interface{}{
 		":errno": rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 501)
+		return
+	}
+
+	return
+}
+
+// 获取房源详细信息
+func GetHouseInfo(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	/* 获取数据 */
+	// 获取房源id
+	houseId := ps.ByName("id")
+	userLoginSession, err := r.Cookie("userLogin")
+	if err != nil {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+	}
+
+	/* 处理数据 */
+	// 连接服务
+	service := grpc.NewService()
+	service.Init()
+
+	getHouseInfoClient := gethouseinfo.NewGetHouseInfoService("go.micro.srv.GetHouseInfo", service.Client())
+	rsp, err := getHouseInfoClient.GetHouseInfo(context.TODO(), &gethouseinfo.Request{
+		SessionId: userLoginSession.Value,
+		HouseId:   houseId,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	data := make(map[string]interface{})
+	var house models.House
+	json.Unmarshal(rsp.HouseInfo, &house)
+	data["house"] = house.ToOneHouseDesc()
+	data["user_id"] = rsp.UserId
+
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 501)
+		return
+	}
+
+	return
+}
+
+// 获取首页轮播图
+func GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	/* 获取数据 */
+
+	/* 处理数据 */
+	// 连接服务
+	service := grpc.NewService()
+	service.Init()
+
+	getIndexClient := getindex.NewGetIndexService("go.micro.srv.GetIndex", service.Client())
+	rsp, err := getIndexClient.GetIndex(context.TODO(), &getindex.Request{})
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	var data []interface{}
+	json.Unmarshal(rsp.Data, &data)
+
+	/* 返回数据 */
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+	w.Header().Set("Content-TYpe", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 503)
+		return
+	}
+	return
+}
+
+// 搜索房源
+func GetHouses(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	/* 获取数据 */
+	areaId := r.URL.Query()["aid"][0]
+	startDate := r.URL.Query()["sd"][0]
+	endDate := r.URL.Query()["ed"][0]
+	selectKey := r.URL.Query()["sk"][0]
+	currentPage := r.URL.Query()["p"][0]
+
+	/* 处理数据 */
+	// 连接服务
+	service := grpc.NewService()
+	service.Init()
+
+	getHousesClient := gethouses.NewGetHousesService("go.micro.srv.GetHouses", service.Client())
+	rsp, err := getHousesClient.GetHouses(context.TODO(), &gethouses.Request{
+		AreaId:     areaId,
+		StartDate:  startDate,
+		EndDate:    endDate,
+		SelectKey:  selectKey,
+		PageNumber: currentPage,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	/* 返回数据 */
+	var houseList []interface{}
+	json.Unmarshal(rsp.Houses, &houseList)
+
+	data := make(map[string]interface{})
+	data["current_page"] = currentPage
+	data["houses"] = houseList
+	data["total_page"] = rsp.TotalPage
+
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 501)
+		return
+	}
+	return
+}
+
+// 发布订单
+func PostOrders(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	/* 获取数据 */
+	// 获取订单信息
+	orderInfo, _ := ioutil.ReadAll(r.Body)
+
+	// 获取 cookie
+	userLoginSession, err := r.Cookie("userLogin")
+	if err != nil {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	/* 处理数据 */
+	// 连接服务
+	service := grpc.NewService()
+	service.Init()
+
+	postOrdersClient := postorders.NewPostOrdersService("go.micro.srv.PostOrders", service.Client())
+	rsp, err := postOrdersClient.PostOrders(context.TODO(), &postorders.Request{
+		SessionId: userLoginSession.Value,
+		OrderInfo: orderInfo,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	/* 返回数据 */
+	data := make(map[string]interface{})
+	data["order_id"] = rsp.OrderId
+
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
 		"errmsg": rsp.ErrMsg,
 		"data":   data,
 	}

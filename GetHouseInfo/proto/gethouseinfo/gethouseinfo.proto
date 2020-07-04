@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package go.micro.srv.GetHouseInfo;
+
+service GetHouseInfo {
+  rpc GetHouseInfo(Request) returns (Response) {}
+}
+
+message Request {
+  string SessionId = 1;
+  string HouseId = 2;
+}
+
+message Response {
+  string ErrNo = 1;
+  string ErrMsg = 2;
+  bytes  HouseInfo = 3;
+  string UserId = 4;
+}
