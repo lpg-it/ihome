@@ -71,7 +71,7 @@ func (e *Server) GetUserOrder(ctx context.Context, req *getuserorder.Request, rs
 	}
 
 	// 更新 session
-	bm.Put(req.SessionId+"userId", strconv.Itoa(userId), time.Second*3600)
+	_ = bm.Put(req.SessionId+"userId", strconv.Itoa(userId), time.Second*3600)
 
 	/* 返回数据 */
 	rsp.Orders, _ = json.Marshal(orderList)

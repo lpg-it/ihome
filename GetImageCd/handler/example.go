@@ -8,17 +8,16 @@ import (
 	_ "github.com/astaxie/beego/cache/redis"
 	_ "github.com/garyburd/redigo/redis"
 	_ "github.com/gomodule/redigo/redis"
-	"github.com/micro/go-log"
 	"ihome/ihomeWeb/utils"
 	"image/color"
 	"time"
 
-	example "ihome/GetImageCd/proto/example"
+	getimagecd "ihome/GetImageCd/proto/getimagecd"
 )
 
-type Example struct{}
+type Server struct{}
 
-func (e *Example) GetImageCd(ctx context.Context, req *example.Request, rsp *example.Response) error {
+func (e *Server) GetImageCd(ctx context.Context, req *getimagecd.Request, rsp *getimagecd.Response) error {
 	// 成功返回
 	rsp.ErrNo = utils.RECODE_OK
 	rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
@@ -65,37 +64,7 @@ func (e *Example) GetImageCd(ctx context.Context, req *example.Request, rsp *exa
 	}
 
 	// 验证码进行 10 分钟的缓存
-	bm.Put(req.Uuid, str, 600*time.Second)
+	_ = bm.Put(req.Uuid, str, 600*time.Second)
 
 	return nil
-}
-
-// Stream is a server side stream handler called via client.Stream or the generated client code
-func (e *Example) Stream(ctx context.Context, req *example.StreamingRequest, stream example.Example_StreamStream) error {
-	log.Logf("Received Example.Stream request with count: %d", req.Count)
-
-	for i := 0; i < int(req.Count); i++ {
-		log.Logf("Responding: %d", i)
-		if err := stream.Send(&example.StreamingResponse{
-			Count: int64(i),
-		}); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// PingPong is a bidirectional stream handler called via client.Stream or the generated client code
-func (e *Example) PingPong(ctx context.Context, stream example.Example_PingPongStream) error {
-	for {
-		req, err := stream.Recv()
-		if err != nil {
-			return err
-		}
-		log.Logf("Got ping %v", req.Stroke)
-		if err := stream.Send(&example.Pong{Stroke: req.Stroke}); err != nil {
-			return err
-		}
-	}
 }

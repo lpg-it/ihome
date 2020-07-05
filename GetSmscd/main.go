@@ -5,8 +5,7 @@ import (
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro"
 	"ihome/GetSmscd/handler"
-	example "ihome/GetSmscd/proto/example"
-	"ihome/GetSmscd/subscriber"
+	getsmscd "ihome/GetSmscd/proto/getsmscd"
 )
 
 func main() {
@@ -20,13 +19,13 @@ func main() {
 	service.Init()
 
 	// Register Handler
-	example.RegisterExampleHandler(service.Server(), new(handler.Example))
+	getsmscd.RegisterGetSmscdHandler(service.Server(), new(handler.Server))
 
 	// Register Struct as Subscriber
-	micro.RegisterSubscriber("go.micro.srv.GetSmscd", service.Server(), new(subscriber.Example))
+	//micro.RegisterSubscriber("go.micro.srv.GetSmscd", service.Server(), new(subscriber.Example))
 
 	// Register Function as Subscriber
-	micro.RegisterSubscriber("go.micro.srv.GetSmscd", service.Server(), subscriber.Handler)
+	//micro.RegisterSubscriber("go.micro.srv.GetSmscd", service.Server(), subscriber.Handler)
 
 	// Run service
 	if err := service.Run(); err != nil {

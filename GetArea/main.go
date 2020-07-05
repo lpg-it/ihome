@@ -19,7 +19,7 @@ func main() {
 	service.Init()
 
 	// Register Handler
-	getarea.RegisterExampleHandler(service.Server(), new(handler.Example))
+	getarea.RegisterExampleHandler(service.Server(), new(handler.Server))
 
 	// Register Struct as Subscriber
 	//micro.RegisterSubscriber("go.micro.srv.GetArea", service.Server(), new(subscriber.Example))

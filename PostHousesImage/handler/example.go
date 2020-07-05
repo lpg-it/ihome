@@ -36,7 +36,7 @@ func (e *Server) PostHousesImage(ctx context.Context, req *posthousesimage.Reque
 	_ = o.Read(&house)
 
 	if house.IndexImageUrl == "" {
-		// 为空则设置此图片为主图
+		// 主图为空则设置此图片为主图
 		house.IndexImageUrl = remoteFileId
 	}
 	// 把此图片添加到 HouseImage 中

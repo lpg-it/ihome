@@ -48,7 +48,7 @@ func (e *Server) GetHouseInfo(ctx context.Context, req *gethouseinfo.Request, rs
 	// 从 redis 中获取房屋数据， 没有则去数据库中获取并添加到缓存中
 	houseInfo := bm.Get("houseInfo" + houseId)
 	if houseInfo != nil {
-		// 缓存中有数据
+		// 缓存中已经有数据
 		rsp.UserId = strconv.Itoa(userId)
 		rsp.HouseInfo = houseInfo.([]byte)
 		return nil

@@ -64,9 +64,9 @@ func (e *Example) PostLogin(ctx context.Context, req *postlogin.Request, rsp *po
 	sessionId := handler.GetMd5String(req.Mobile + req.Password)
 
 	// 设置 session
-	bm.Put(sessionId + "name", user.Name, time.Second * 3600)
-	bm.Put(sessionId + "userId", string(user.Id), time.Second * 3600)
-	bm.Put(sessionId + "mobile", user.Mobile, time.Second * 3600)
+	_ = bm.Put(sessionId + "name", user.Name, time.Second * 3600)
+	_ = bm.Put(sessionId + "userId", string(user.Id), time.Second * 3600)
+	_ = bm.Put(sessionId + "mobile", user.Mobile, time.Second * 3600)
 
 	/* 返回数据 */
 	rsp.SessionId = sessionId

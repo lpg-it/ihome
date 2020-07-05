@@ -82,9 +82,9 @@ func (e *Example) PostRet(ctx context.Context, req *postret.Request, rsp *postre
 	// 返回给客户端 session
 	rsp.SessionId = h
 
-	bm.Put(h+"name", string(user.Name), 3600*time.Second)
-	bm.Put(h+"userId", string(user.Id), 3600*time.Second)
-	bm.Put(h+"mobile", string(user.Mobile), 3600*time.Second)
+	_ = bm.Put(h+"name", string(user.Name), 3600*time.Second)
+	_ = bm.Put(h+"userId", string(user.Id), 3600*time.Second)
+	_ = bm.Put(h+"mobile", string(user.Mobile), 3600*time.Second)
 
 	return nil
 }

@@ -41,7 +41,7 @@ func (e *Server) PutComment(ctx context.Context, req *putcomment.Request, rsp *p
 	orderComment := req.OrderComment
 
 	/* 处理数据 */
-	// 检验评论是否合法：判空
+	// 检验评论是否合法
 	if orderComment == "" {
 		rsp.ErrNo = utils.RECODE_PARAMERR
 		rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)

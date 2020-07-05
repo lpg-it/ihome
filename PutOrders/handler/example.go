@@ -84,8 +84,7 @@ func (e *Server) PutOrders(ctx context.Context, req *putorders.Request, rsp *put
 	}
 
 	// 设置 session
-	bm.Put(req.SessionId+"userId", userId.(string), time.Second*3600)
-
+	_ = bm.Put(req.SessionId+"userId", userId.(string), time.Second*3600)
 
 	return nil
 }

@@ -17,8 +17,6 @@ func (e *Example) DeleteSession(ctx context.Context, req *deletesession.Request,
 	rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
 
 	/* 获取数据 */
-	// 获取 sessionId
-	//req.SessionId
 
 	/* 处理数据 */
 	// 连接 redis 数据库
@@ -35,9 +33,9 @@ func (e *Example) DeleteSession(ctx context.Context, req *deletesession.Request,
 	}
 
 	// 删除缓存中的数据
-	bm.Delete(req.SessionId + "name")
-	bm.Delete(req.SessionId + "userId")
-	bm.Delete(req.SessionId + "mobile")
+	_ = bm.Delete(req.SessionId + "name")
+	_ = bm.Delete(req.SessionId + "userId")
+	_ = bm.Delete(req.SessionId + "mobile")
 
 	return nil
 }

@@ -40,7 +40,7 @@ func (e *Server) GetIndex(ctx context.Context, req *getindex.Request, rsp *getin
 		rsp.Data = homePageData.([]byte)
 		return nil
 	}
-
+	/* 处理数据 */
 	// 缓存中没有数据， 从数据库中查询
 	o := orm.NewOrm()
 	var houses []models.House
@@ -51,7 +51,6 @@ func (e *Server) GetIndex(ctx context.Context, req *getindex.Request, rsp *getin
 		return nil
 	}
 
-	/* 处理数据 */
 	var data []interface{}
 	for _, house := range houses {
 		o.LoadRelated(&house, "Area")
@@ -63,7 +62,7 @@ func (e *Server) GetIndex(ctx context.Context, req *getindex.Request, rsp *getin
 	}
 
 	homePageData, _ = json.Marshal(data)
-	bm.Put("homePageData", homePageData, time.Second*3600)
+	_ = bm.Put("homePageData", homePageData, time.Second*3600)
 
 	/* 返回数据 */
 	rsp.Data = homePageData.([]byte)

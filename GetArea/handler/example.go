@@ -15,9 +15,9 @@ import (
 	getarea "ihome/GetArea/proto/getarea"
 )
 
-type Example struct{}
+type Server struct{}
 
-func (e *Example) GetArea(ctx context.Context, req *getarea.Request, rsp *getarea.Response) error {
+func (e *Server) GetArea(ctx context.Context, req *getarea.Request, rsp *getarea.Response) error {
 	// 初始化 错误码
 	rsp.ErrNo = utils.RECODE_OK
 	rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)

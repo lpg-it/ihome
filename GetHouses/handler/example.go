@@ -21,10 +21,8 @@ func (e *Server) GetHouses(ctx context.Context, req *gethouses.Request, rsp *get
 	/* 获取数据 */
 	// 地区id
 	areaId := req.AreaId
-	// 起始日期
-	//startDate := req.StartDate
-	// 结束日期
-	//endDate := req.EndDate
+	// 起始日期 startDate := req.StartDate
+	// 结束日期 endDate := req.EndDate
 	// 页码
 	pageNumber, _ := strconv.Atoi(req.PageNumber)
 

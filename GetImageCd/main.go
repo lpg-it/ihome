@@ -5,9 +5,7 @@ import (
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro"
 	"ihome/GetImageCd/handler"
-	"ihome/GetImageCd/subscriber"
-
-	example "ihome/GetImageCd/proto/example"
+	getimagecd "ihome/GetImageCd/proto/getimagecd"
 )
 
 func main() {
@@ -21,13 +19,13 @@ func main() {
 	service.Init()
 
 	// Register Handler
-	example.RegisterExampleHandler(service.Server(), new(handler.Example))
+	getimagecd.RegisterGetImageCdHandler(service.Server(), new(handler.Server))
 
 	// Register Struct as Subscriber
-	micro.RegisterSubscriber("go.micro.srv.GetImageCd", service.Server(), new(subscriber.Example))
+	//micro.RegisterSubscriber("go.micro.srv.GetImageCd", service.Server(), new(subscriber.Example))
 
 	// Register Function as Subscriber
-	micro.RegisterSubscriber("go.micro.srv.GetImageCd", service.Server(), subscriber.Handler)
+	//micro.RegisterSubscriber("go.micro.srv.GetImageCd", service.Server(), subscriber.Handler)
 
 	// Run service
 	if err := service.Run(); err != nil {

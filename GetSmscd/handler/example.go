@@ -10,17 +10,16 @@ import (
 	"github.com/garyburd/redigo/redis"
 	_ "github.com/garyburd/redigo/redis"
 	_ "github.com/gomodule/redigo/redis"
-	"github.com/micro/go-log"
-	example "ihome/GetSmscd/proto/example"
+	getsmscd "ihome/GetSmscd/proto/getsmscd"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
 	"math/rand"
 	"time"
 )
 
-type Example struct{}
+type Server struct{}
 
-func (e *Example) GetSmscd(ctx context.Context, req *example.Request, rsp *example.Response) error {
+func (e *Server) GetSmscd(ctx context.Context, req *getsmscd.Request, rsp *getsmscd.Response) error {
 	// 初始化返回正确的返回值
 	rsp.ErrNo = utils.RECODE_OK
 	rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
@@ -76,41 +75,11 @@ func (e *Example) GetSmscd(ctx context.Context, req *example.Request, rsp *examp
 	fmt.Println("短信验证码：", randomCode)
 
 	// 通过手机号对验证短信进行缓存
-	err = bm.Put(req.Mobile, randomCode, time.Second * 600)
+	err = bm.Put(req.Mobile, randomCode, time.Second*600)
 	if err != nil {
 		rsp.ErrNo = utils.RECODE_DBERR
 		rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
 		return nil
 	}
 	return nil
-}
-
-// Stream is a server side stream handler called via client.Stream or the generated client code
-func (e *Example) Stream(ctx context.Context, req *example.StreamingRequest, stream example.Example_StreamStream) error {
-	log.Logf("Received Example.Stream request with count: %d", req.Count)
-
-	for i := 0; i < int(req.Count); i++ {
-		log.Logf("Responding: %d", i)
-		if err := stream.Send(&example.StreamingResponse{
-			Count: int64(i),
-		}); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// PingPong is a bidirectional stream handler called via client.Stream or the generated client code
-func (e *Example) PingPong(ctx context.Context, stream example.Example_PingPongStream) error {
-	for {
-		req, err := stream.Recv()
-		if err != nil {
-			return err
-		}
-		log.Logf("Got ping %v", req.Stroke)
-		if err := stream.Send(&example.Pong{Stroke: req.Stroke}); err != nil {
-			return err
-		}
-	}
 }

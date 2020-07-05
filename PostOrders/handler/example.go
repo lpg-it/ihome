@@ -76,7 +76,7 @@ func (e *Server) PostOrders(ctx context.Context, req *postorders.Request, rsp *p
 	var house models.House
 	o := orm.NewOrm()
 	house.Id, _ = strconv.Atoi(orderInfo["house_id"].(string))
-	o.Read(&house)
+	_ = o.Read(&house)
 
 	// 确保当前用户不是房源信息的发布者
 	o.LoadRelated(&house, "User")
@@ -117,9 +117,9 @@ func (e *Server) PostOrders(ctx context.Context, req *postorders.Request, rsp *p
 	}
 
 	// 设置 session
-	bm.Put(req.SessionId + "name", user.Name, time.Second * 3600)
-	bm.Put(req.SessionId + "userId", string(user.Id), time.Second * 3600)
-	bm.Put(req.SessionId + "mobile", user.Mobile, time.Second * 3600)
+	_ = bm.Put(req.SessionId + "name", user.Name, time.Second * 3600)
+	_ = bm.Put(req.SessionId + "userId", string(user.Id), time.Second * 3600)
+	_ = bm.Put(req.SessionId + "mobile", user.Mobile, time.Second * 3600)
 
 	/* 返回数据 */
 	rsp.OrderId = strconv.Itoa(order.Id)

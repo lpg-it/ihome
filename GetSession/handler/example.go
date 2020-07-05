@@ -12,9 +12,9 @@ import (
 	"ihome/ihomeWeb/utils"
 )
 
-type Example struct{}
+type Server struct{}
 
-func (e *Example) GetSession(ctx context.Context, req *getsession.Request, rsp *getsession.Response) error {
+func (e *Server) GetSession(ctx context.Context, req *getsession.Request, rsp *getsession.Response) error {
 	// 初始化
 	rsp.ErrNo = utils.RECODE_OK
 	rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)

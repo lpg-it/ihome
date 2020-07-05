@@ -65,9 +65,9 @@ func (e *Server) PostAvatar(ctx context.Context, req *postavatar.Request, rsp *p
 	}
 
 	// 设置 session
-	bm.Put(req.SessionId + "name", user.Name, time.Second * 3600)
-	bm.Put(req.SessionId + "userId", string(user.Id), time.Second * 3600)
-	bm.Put(req.SessionId + "mobile", user.Mobile, time.Second * 3600)
+	_ = bm.Put(req.SessionId + "name", user.Name, time.Second * 3600)
+	_ = bm.Put(req.SessionId + "userId", string(user.Id), time.Second * 3600)
+	_ = bm.Put(req.SessionId + "mobile", user.Mobile, time.Second * 3600)
 
 	/* 返回数据 */
 	rsp.AvatarUrl = RemoteFileId

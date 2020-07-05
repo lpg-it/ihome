@@ -56,7 +56,7 @@ func (e *Server) GetUserHouses(ctx context.Context, req *getuserhouses.Request, 
 	}
 
 	// 更新 session
-	bm.Put(req.SessionId+"userId", strconv.Itoa(userId), time.Second*3600)
+	_ = bm.Put(req.SessionId+"userId", strconv.Itoa(userId), time.Second*3600)
 
 
 	/* 返回数据 */
