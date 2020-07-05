@@ -11,6 +11,7 @@ import (
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
 	"strconv"
+	"time"
 
 	posthouses "ihome/PostHouses/proto/posthouses"
 )
@@ -100,6 +101,11 @@ func (e *Server) PostHouses(ctx context.Context, req *posthouses.Request, rsp *p
 		rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
 		return nil
 	}
+
+	// 设置 session
+	bm.Put(req.SessionId + "name", user.Name, time.Second * 3600)
+	bm.Put(req.SessionId + "userId", string(user.Id), time.Second * 3600)
+	bm.Put(req.SessionId + "mobile", user.Mobile, time.Second * 3600)
 
 	/* 返回数据 */
 	rsp.HouseId = strconv.Itoa(house.Id)

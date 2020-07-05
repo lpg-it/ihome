@@ -8,11 +8,10 @@ import (
 	"github.com/astaxie/beego/orm"
 	_ "github.com/garyburd/redigo/redis"
 	_ "github.com/gomodule/redigo/redis"
+	postuserauth "ihome/PostUserAuth/proto/postuserauth"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
 	"time"
-
-	postuserauth "ihome/PostUserAuth/proto/postuserauth"
 )
 
 type Server struct{}
@@ -57,10 +56,12 @@ func (e *Server) PostUserAuth(ctx context.Context, req *postuserauth.Request, rs
 		return nil
 	}
 
-	/* 返回数据 */
-	bm.Put(req.SessionId+"userId", user.Id, time.Second*3600)
+	// 设置 session
 	bm.Put(req.SessionId+"name", user.Name, time.Second*3600)
+	bm.Put(req.SessionId+"userId", string(user.Id), time.Second*3600)
 	bm.Put(req.SessionId+"mobile", user.Mobile, time.Second*3600)
+
+	/* 返回数据 */
 
 	return nil
 }

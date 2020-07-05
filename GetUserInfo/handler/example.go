@@ -11,6 +11,7 @@ import (
 	getuserinfo "ihome/GetUserInfo/proto/getuserinfo"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
+	"time"
 )
 
 type Server struct{}
@@ -48,6 +49,11 @@ func (e *Server) GetUserInfo(ctx context.Context, req *getuserinfo.Request, rsp 
 		rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
 		return nil
 	}
+
+	// 更新 session
+	bm.Put(req.SessionId+"userId", user.Id, time.Second*3600)
+	bm.Put(req.SessionId+"name", user.Name, time.Second*3600)
+	bm.Put(req.SessionId+"mobile", user.Mobile, time.Second*3600)
 
 	/* 返回数据 */
 	rsp.UserId = int64(user.Id)

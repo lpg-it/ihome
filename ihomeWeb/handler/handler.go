@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/afocus/captcha"
 	"github.com/julienschmidt/httprouter"
 	"github.com/micro/go-grpc"
@@ -19,6 +20,7 @@ import (
 	getuserauth "ihome/GetUserAuth/proto/getuserauth"
 	getuserhouses "ihome/GetUserHouses/proto/getuserhouses"
 	getuserinfo "ihome/GetUserInfo/proto/getuserinfo"
+	getuserorder "ihome/GetUserOrder/proto/getuserorder"
 	postavatar "ihome/PostAvatar/proto/postavatar"
 	posthouses "ihome/PostHouses/proto/posthouses"
 	posthousesimage "ihome/PostHousesImage/proto/posthousesimage"
@@ -26,6 +28,8 @@ import (
 	postorders "ihome/PostOrders/proto/postorders"
 	postret "ihome/PostRet/proto/postret"
 	postuserauth "ihome/PostUserAuth/proto/postuserauth"
+	putcomment "ihome/PutComment/proto/putcomment"
+	putorders "ihome/PutOrders/proto/putorders"
 	putuserinfo "ihome/PutUserInfo/proto/putuserinfo"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
@@ -1083,6 +1087,183 @@ func PostOrders(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		"errno":  rsp.ErrNo,
 		"errmsg": rsp.ErrMsg,
 		"data":   data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 501)
+		return
+	}
+
+	return
+}
+
+// 查看 房东/租客 订单信息
+func GetUserOrder(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	/* 获取数据 */
+	// 获取 cookie
+	userLoginSession, err := r.Cookie("userLogin")
+	if err != nil {
+		// 用户未登录
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	// 获取 role
+	fmt.Println(r.URL.Query())
+	role := r.URL.Query()["role"][0]
+
+	/* 处理数据 */
+	// 连接服务
+	service := grpc.NewService()
+	service.Init()
+
+	getUserOrderClient := getuserorder.NewGetUserOrderService("go.micro.srv.GetUserOrder", service.Client())
+	rsp, err := getUserOrderClient.GetUserOrder(context.TODO(), &getuserorder.Request{
+		SessionId: userLoginSession.Value,
+		Role:      role,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	/* 返回数据 */
+	var orderList []interface{}
+	json.Unmarshal(rsp.Orders, &orderList)
+	data := make(map[string]interface{})
+	data["orders"] = orderList
+
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 501)
+		return
+	}
+
+	return
+}
+
+// 房东 同意/拒绝 订单
+func PutOrders(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	/* 获取数据 */
+	// 获取 订单id
+	orderId := ps.ByName("id")
+
+	// 从请求中 获取 订单状态
+	var request map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), 501)
+		return
+	}
+	fmt.Println(request)
+
+	// 获取用户 cookie
+	userLoginSession, err := r.Cookie("userLogin")
+	if err != nil {
+		// 用户未登录
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 501)
+			return
+		}
+		return
+	}
+
+	/* 处理数据 */
+	// 连接服务
+	service := grpc.NewService()
+	service.Init()
+
+	putOrdersClient := putorders.NewPutOrdersService("go.micro.srv.PutOrders", service.Client())
+	rsp, err := putOrdersClient.PutOrders(context.TODO(), &putorders.Request{
+		SessionId: userLoginSession.Value,
+		OrderId:   orderId,
+		Action:    request["action"].(string),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+
+	/* 返回数据 */
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
+		http.Error(w, err.Error(), 501)
+		return
+	}
+
+	return
+}
+
+// 用户评价订单
+func PutComment(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	/* 获取数据 */
+	// 获取用户 cookie
+	userLoginSession, err := r.Cookie("userLogin")
+	if err != nil {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&response); err != nil {
+			http.Error(w, err.Error(), 503)
+			return
+		}
+		return
+	}
+
+	// 获取 订单id
+	orderId := ps.ByName("id")
+
+	// 获取评论
+	request := make(map[string]interface{})
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+	fmt.Println(request)
+
+	/* 处理数据 */
+	// 连接服务
+	service := grpc.NewService()
+	service.Init()
+
+	putCommentClient := putcomment.NewPutCommentService("go.micro.srv.PutComment", service.Client())
+	rsp, err := putCommentClient.PutComment(context.TODO(), &putcomment.Request{
+		SessionId:    userLoginSession.Value,
+		OrderId:      orderId,
+		OrderComment: request["comment"].(string),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	/* 返回数据 */
+	response := map[string]interface{}{
+		"errno":  rsp.ErrNo,
+		"errmsg": rsp.ErrMsg,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(&response); err != nil {

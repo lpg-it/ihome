@@ -60,8 +60,9 @@ func (e *Server) PostOrders(ctx context.Context, req *postorders.Request, rsp *p
 
 	// 结束日期要在开始日期之后
 	// 格式化日期
-	startDate, _ := time.Parse("2006-01-02 15:04:05", orderInfo["start_time"].(string)+"00:00:00")
-	endDate, _ := time.Parse("2006-01-02 15:04:05", orderInfo["end_time"].(string)+"00:00:00")
+	startDate, _ := time.Parse("2006-01-02 15:04:05", orderInfo["start_date"].(string)+" "+"00:00:00")
+	endDate, _ := time.Parse("2006-01-02 15:04:05", orderInfo["end_date"].(string)+" "+"00:00:00")
+
 	if endDate.Before(startDate) {
 		rsp.ErrNo = utils.RECODE_ROLEERR
 		rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
@@ -86,11 +87,15 @@ func (e *Server) PostOrders(ctx context.Context, req *postorders.Request, rsp *p
 	}
 
 	// 添加订单信息
-	/*Amount、Status、Comment
-	Ctime、Credit*/
 	var user models.User
 	user.Id = userId
-	o.Read(&user)
+
+	if err := o.Read(&user); err != nil {
+		// 数据库读取失败
+		rsp.ErrNo = utils.RECODE_DBERR
+		rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
+		return nil
+	}
 
 	var order models.OrderHouse
 	order.House = &house
@@ -101,7 +106,8 @@ func (e *Server) PostOrders(ctx context.Context, req *postorders.Request, rsp *p
 	order.HousePrice = house.Price
 	order.Amount = int(days) * house.Price
 	order.Status = models.OrderStatusWaitAccept
-	order.Credit = false
+	order.Comment = ""
+	order.Credit = true
 
 	_, err = o.Insert(&order)
 	if err != nil {
@@ -110,7 +116,10 @@ func (e *Server) PostOrders(ctx context.Context, req *postorders.Request, rsp *p
 		return nil
 	}
 
-	bm.Put(req.SessionId+"userId", userId, time.Second*3600)
+	// 设置 session
+	bm.Put(req.SessionId + "name", user.Name, time.Second * 3600)
+	bm.Put(req.SessionId + "userId", string(user.Id), time.Second * 3600)
+	bm.Put(req.SessionId + "mobile", user.Mobile, time.Second * 3600)
 
 	/* 返回数据 */
 	rsp.OrderId = strconv.Itoa(order.Id)

@@ -10,6 +10,8 @@ import (
 	_ "github.com/gomodule/redigo/redis"
 	"ihome/ihomeWeb/models"
 	"ihome/ihomeWeb/utils"
+	"strconv"
+	"time"
 
 	getuserhouses "ihome/GetUserHouses/proto/getuserhouses"
 )
@@ -52,6 +54,10 @@ func (e *Server) GetUserHouses(ctx context.Context, req *getuserhouses.Request, 
 		rsp.ErrMsg = utils.RecodeText(rsp.ErrNo)
 		return nil
 	}
+
+	// 更新 session
+	bm.Put(req.SessionId+"userId", strconv.Itoa(userId), time.Second*3600)
+
 
 	/* 返回数据 */
 	rsp.Data, _ = json.Marshal(houses)
